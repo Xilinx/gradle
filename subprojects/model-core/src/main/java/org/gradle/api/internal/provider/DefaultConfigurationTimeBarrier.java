@@ -16,20 +16,15 @@
 
 package org.gradle.api.internal.provider;
 
-import org.gradle.api.execution.TaskExecutionGraphListener;
-import org.gradle.internal.event.ListenerManager;
-
 public class DefaultConfigurationTimeBarrier implements ConfigurationTimeBarrier {
 
     private volatile boolean atConfigurationTime = true;
 
-    public DefaultConfigurationTimeBarrier(ListenerManager listenerManager) {
-        listenerManager.addListener((TaskExecutionGraphListener) graph -> {
-            if (!atConfigurationTime) {
-                throw new IllegalStateException();
-            }
-            atConfigurationTime = false;
-        });
+    public void crossConfigurationTimeBarrier() {
+        if (!atConfigurationTime) {
+            throw new IllegalStateException();
+        }
+        atConfigurationTime = false;
     }
 
     @Override

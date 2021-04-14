@@ -17,9 +17,13 @@
 package org.gradle.internal.buildtree;
 
 import org.gradle.api.internal.BuildType;
+import org.gradle.api.internal.GradleInternal;
 import org.gradle.api.internal.project.DefaultProjectStateRegistry;
+import org.gradle.api.internal.provider.ConfigurationTimeBarrier;
+import org.gradle.api.internal.provider.DefaultConfigurationTimeBarrier;
 import org.gradle.api.logging.configuration.LoggingConfiguration;
 import org.gradle.api.logging.configuration.ShowStacktrace;
+import org.gradle.initialization.RootBuildLifecycleListener;
 import org.gradle.initialization.exception.DefaultExceptionAnalyser;
 import org.gradle.initialization.exception.ExceptionAnalyser;
 import org.gradle.initialization.exception.MultipleBuildFailuresExceptionAnalyser;
@@ -66,7 +70,24 @@ public class BuildTreeScopeServices {
         return exceptionAnalyser;
     }
 
-    public DefaultProjectStateRegistry createProjectPathRegistry(WorkerLeaseService workerLeaseService) {
+    protected DefaultProjectStateRegistry createProjectPathRegistry(WorkerLeaseService workerLeaseService) {
         return new DefaultProjectStateRegistry(workerLeaseService);
+    }
+
+    protected ConfigurationTimeBarrier createConfigurationTimeBarrier(ListenerManager listenerManager) {
+        final DefaultConfigurationTimeBarrier configurationTimeBarrier = new DefaultConfigurationTimeBarrier();
+        listenerManager.addListener(new RootBuildLifecycleListener() {
+            @Override
+            public void afterStart(GradleInternal gradle) {
+                gradle.getTaskGraph().whenReady((taskGraph) -> {
+                    configurationTimeBarrier.crossConfigurationTimeBarrier();
+                });
+            }
+
+            @Override
+            public void beforeComplete(GradleInternal gradle) {
+            }
+        });
+        return configurationTimeBarrier;
     }
 }
